@@ -8,7 +8,7 @@ export default function Signup() {
       <div className="flip-card__inner">
         <div className="flip-card__front">
           <div className="title">Register</div>
-          <form className="flip-card__form" action="/login">
+          <form className="flip-card__form" action="/signup">
             <input
               className="flip-card__input"
               name="username"
