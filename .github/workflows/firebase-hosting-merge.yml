@@ -6,6 +6,14 @@ on:
   push:
     branches:
       - main
+env:
+  VITE_API: ${{ secrets.VITE_API }}
+  VITE_AUTH: ${{ secrets.VITE_AUTH }}
+  VITE_PROJECT: ${{ secrets.VITE_PROJECT }}
+  VITE_STORAGE: ${{ secrets.VITE_STORAGE }}
+  VITE_MSG: ${{ secrets.VITE_MSG }}
+  VITE_APP: ${{ secrets.VITE_APP }}
+  VITE_MEASUREMENT: ${{ secrets.VITE_MEASUREMENT }}
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest

@@ -3,6 +3,14 @@
 
 name: Deploy to Firebase Hosting on PR
 on: pull_request
+env:
+  VITE_API: ${{ secrets.VITE_API }}
+  VITE_AUTH: ${{ secrets.VITE_AUTH }}
+  VITE_PROJECT: ${{ secrets.VITE_PROJECT }}
+  VITE_STORAGE: ${{ secrets.VITE_STORAGE }}
+  VITE_MSG: ${{ secrets.VITE_MSG }}
+  VITE_APP: ${{ secrets.VITE_APP }}
+  VITE_MEASUREMENT: ${{ secrets.VITE_MEASUREMENT }}
 permissions:
   checks: write
   contents: read
