@@ -1,9 +1,7 @@
 import "./Signup.css";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { auth, db } from "../../firebase"; // Ensure you have firebaseConfig.js
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, addDoc } from "firebase/firestore";
+import { createUsernameAndPassword } from "../../firebase/auth";
 
 export default function Signup() {
   const [username, setUsername] = useState("");
@@ -21,24 +19,9 @@ export default function Signup() {
     }
 
     try {
-      // Create user with Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-
-      // Store user data in Firestore
-      await addDoc(collection(db, "users"), {
-        uid: user.uid,
-        username,
-        email,
-        createdAt: new Date(),
-      });
-
+      await createUsernameAndPassword(email, password, username);
       alert("Registration successful!");
-      navigate("/dashboard"); // Redirect after successful signup
+      navigate("/login");
     } catch (error) {
       console.error("Error signing up: ", error.message);
       alert(error.message);
