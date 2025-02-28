@@ -1,0 +1,77 @@
+body {
+  /* background: linear-gradient(
+    90deg,
+    hsla(0, 0%, 40%, 1) 0%,
+    hsla(311, 7%, 43%, 1) 21%,
+    hsla(346, 17%, 55%, 1) 43%,
+    hsla(9, 56%, 71%, 1) 66%,
+    hsla(10, 67%, 74%, 1) 72%,
+    hsla(35, 90%, 72%, 1) 88%,
+    hsla(60, 67%, 64%, 1) 100%
+  ); */
+  background-color: rgb(243, 237, 229);
+}
+
+.to-img,
+.from-img {
+  width: 350px;
+  height: 200px;
+  border-radius: 15px;
+  margin: 15px;
+  border: 1px dashed black;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: row;
+  padding: 0 20px;
+  background-color: #424242;
+  color: white;
+}
+
+.content,
+.go-from,
+.go-to {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.search > input {
+  border-radius: 10px;
+  margin-left: 5px;
+  border: 2px solid black;
+  padding: 5px;
+}
+
+.welcome-user {
+  margin-left: 20px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  border-left: 4px solid black;
+  border-bottom: 4px solid black;
+  padding-bottom: 2px;
+  padding-left: 3px;
+  border-bottom-left-radius: 10px;
+  width: max-content;
+  box-shadow: -3px 3px 1px rgba(0, 0, 0, 0.5);
+}
+
+.logout-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.logout-btn:hover {
+  background-color: #ca382d;
+  box-shadow: 5px 5px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease-in-out;
+}

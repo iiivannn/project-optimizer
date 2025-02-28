@@ -16,7 +16,6 @@ export default function Login() {
 
     try {
       await authenticateUser(email, password, username);
-      alert("Registration successful!");
       navigate("/dashboard"); // Redirect after successful signup
     } catch (error) {
       console.error("Error signing up: ", error.message);
