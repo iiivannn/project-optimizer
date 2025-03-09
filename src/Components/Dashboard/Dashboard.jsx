@@ -107,7 +107,7 @@ export default function Dashboard() {
             />
           </div>
         </div>
-<div> This is a trial </div>
+
         <div className="go-to">
           <div className="search">
             <label htmlFor="search-to">To:</label>
