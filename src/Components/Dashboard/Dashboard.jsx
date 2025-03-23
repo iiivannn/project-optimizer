@@ -5,6 +5,7 @@ import { db } from "../../firebase/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 import "./Dashboard.css";
 
@@ -18,6 +19,7 @@ export default function Dashboard() {
   const [to, setTo] = useState("");
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const markersRef = useRef([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -72,13 +74,34 @@ export default function Dashboard() {
       const toCoords = await getCoordinates(to);
 
       if (fromCoords && toCoords) {
+        markersRef.current.forEach((marker) => marker.remove());
+        markersRef.current = [];
+
         map.current.flyTo({ center: fromCoords, zoom: 12 });
 
-        new mapboxgl.Marker().setLngLat(fromCoords).addTo(map.current);
-        new mapboxgl.Marker({ color: "red" }).setLngLat(toCoords).addTo(map.current);
+        const fromMarker = new mapboxgl.Marker()
+          .setLngLat(fromCoords)
+          .addTo(map.current);
+        const toMarker = new mapboxgl.Marker({ color: "red" })
+          .setLngLat(toCoords)
+          .addTo(map.current);
+
+        markersRef.current.push(fromMarker, toMarker);
       }
     } catch (error) {
       console.error("Error fetching coordinates:", error);
+    }
+  };
+
+  const resetMap = () => {
+    setFrom("");
+    setTo("");
+
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
+
+    if (map.current) {
+      map.current.flyTo({ center: [120.9842, 14.5995], zoom: 10 });
     }
   };
 
@@ -120,7 +143,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <button className="search-btn" onClick={updateMap}>Search</button>
+        <div className="buttons">
+          <button className="search-btn" onClick={updateMap}>
+            Search
+          </button>
+          <button className="reset-btn" onClick={resetMap}>
+            Reset
+          </button>
+        </div>
       </div>
 
       <div ref={mapContainer} className="map-container"></div>

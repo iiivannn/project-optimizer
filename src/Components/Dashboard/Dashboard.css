@@ -9,7 +9,7 @@ body {
     hsla(35, 90%, 72%, 1) 88%,
     hsla(60, 67%, 64%, 1) 100%
   ); */
-  background-color: rgb(243, 237, 229);
+  background-color: rgb(123, 146, 119);
 }
 
 .to-img,
@@ -32,19 +32,65 @@ body {
 }
 
 .content,
-.go-from,
 .go-to {
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-bottom: 10px;
+  font-size: x-large;
   flex-direction: column;
 }
+
+.go-from {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+  margin-right: 30px;
+  font-size: x-large;
+  flex-direction: column;
+}
+
+button.search-btn, .reset-btn{
+  background-color: #424242;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+  margin: 10px;
+  font-size: x-large;
+  transition: all 0.3s ease-in-out;
+}
+
+.map-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  padding: 20px;
+  margin: 20px auto;
+  width: 1500px;
+  height: 575px;
+  border: 3px solid #424242;
+  border-radius: 20px;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  background-color: white;
+}
+
+.mapboxgl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 
 .search > input {
   border-radius: 10px;
   margin-left: 5px;
   border: 2px solid black;
   padding: 5px;
+  font-size: x-large;
 }
 
 .welcome-user {
