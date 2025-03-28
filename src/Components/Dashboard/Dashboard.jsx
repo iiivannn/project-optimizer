@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import * as polyline from "@mapbox/polyline";
+import PlaceAutocomplete from "./AutoComplete";
 
 import "./Dashboard.css";
 
@@ -205,39 +206,42 @@ export default function Dashboard() {
       <p className="welcome-user">
         Welcome, {username ? username : currentUser?.email}!
       </p>
-
-      <div className="content">
-        <div className="go-from">
-          <div className="search">
-            <label htmlFor="search-from">From:</label>
-            <input
-              type="text"
-              name="search-from"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
+      <div className="content-container">
+        <div className="content">
+          <div className="go-from">
+            <div className="search">
+              <label htmlFor="search-from">From:</label>
+              <PlaceAutocomplete
+                accessToken={mapboxgl.accessToken}
+                value={from}
+                onChange={setFrom}
+                placeholder="Enter starting location"
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="go-to">
-          <div className="search">
-            <label htmlFor="search-to">To:</label>
-            <input
-              type="text"
-              name="search-to"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
+          <div className="go-to">
+            <div className="search">
+              <label htmlFor="search-to">To:</label>
+              <PlaceAutocomplete
+                accessToken={mapboxgl.accessToken}
+                value={to}
+                onChange={setTo}
+                placeholder="Enter destination"
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="buttons">
-          <button className="search-btn" onClick={updateMap}>
-            Search
-          </button>
-          <button className="reset-btn" onClick={resetMap}>
-            Reset
-          </button>
+          <div className="buttons-container">
+            <div className="buttons">
+              <button className="search-btn" onClick={updateMap}>
+                Search
+              </button>
+              <button className="reset-btn" onClick={resetMap}>
+                Reset
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
