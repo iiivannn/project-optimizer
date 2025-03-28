@@ -6,6 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import * as polyline from "@mapbox/polyline";
 
 import "./Dashboard.css";
 
@@ -30,6 +31,12 @@ export default function Dashboard() {
           const userSnap = await getDoc(userDoc);
           if (userSnap.exists()) {
             setUsername(userSnap.data().username);
+            console.log(
+              "User ID:" +
+                currentUser.uid +
+                " Username:" +
+                userSnap.data().username
+            );
           }
         } catch (error) {
           console.error("Error fetching username:", error);
@@ -74,22 +81,97 @@ export default function Dashboard() {
       const toCoords = await getCoordinates(to);
 
       if (fromCoords && toCoords) {
+        // Detailed logging
+        console.log("From Coordinates:", fromCoords);
+        console.log("To Coordinates:", toCoords);
+
+        // Remove existing markers and routes
         markersRef.current.forEach((marker) => marker.remove());
         markersRef.current = [];
 
-        map.current.flyTo({ center: fromCoords, zoom: 12 });
+        // Remove existing route if it exists
+        if (map.current.getSource("route")) {
+          map.current.removeLayer("route");
+          map.current.removeSource("route");
+        }
 
+        // Fit map to bounds of both points
+        const bounds = new mapboxgl.LngLatBounds();
+        bounds.extend(fromCoords);
+        bounds.extend(toCoords);
+        map.current.fitBounds(bounds, {
+          padding: 100,
+          duration: 1000,
+        });
+
+        // Create markers
         const fromMarker = new mapboxgl.Marker()
           .setLngLat(fromCoords)
           .addTo(map.current);
+
         const toMarker = new mapboxgl.Marker({ color: "red" })
           .setLngLat(toCoords)
           .addTo(map.current);
 
         markersRef.current.push(fromMarker, toMarker);
+
+        // Fetch route from Mapbox Directions API
+        const response = await fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${fromCoords[0]},${fromCoords[1]};${toCoords[0]},${toCoords[1]}?access_token=${mapboxgl.accessToken}`
+        );
+        const routeData = await response.json();
+
+        // Detailed logging of route data
+        console.log("Full Route Response:", routeData);
+        console.log("Routes:", routeData.routes);
+
+        // Add route to the map
+        if (routeData.routes && routeData.routes.length > 0) {
+          const route = routeData.routes[0];
+
+          // More detailed logging
+          console.log("Route Geometry:", route.geometry);
+          const decodedCoordinates = polyline.decode(route.geometry);
+          console.log("Decoded Coordinates:", decodedCoordinates);
+
+          // Add route source to the map
+          map.current.addSource("route", {
+            type: "geojson",
+            data: {
+              type: "Feature",
+              properties: {},
+              geometry: {
+                type: "LineString",
+                // Swap the order of each coordinate pair
+                coordinates: decodedCoordinates.map((coord) => [
+                  coord[1],
+                  coord[0],
+                ]),
+              },
+            },
+          });
+
+          // Add route layer
+          map.current.addLayer({
+            id: "route",
+            type: "line",
+            source: "route",
+            layout: {
+              "line-join": "round",
+              "line-cap": "round",
+            },
+            paint: {
+              "line-color": "#18d4f5",
+              "line-width": 6,
+              "line-opacity": 0.9,
+            },
+          });
+        } else {
+          console.error("No routes found");
+        }
       }
     } catch (error) {
-      console.error("Error fetching coordinates:", error);
+      console.error("Error fetching route:", error);
     }
   };
 
@@ -97,14 +179,20 @@ export default function Dashboard() {
     setFrom("");
     setTo("");
 
+    // Remove markers
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
+
+    // Remove route if it exists
+    if (map.current.getSource("route")) {
+      map.current.removeLayer("route");
+      map.current.removeSource("route");
+    }
 
     if (map.current) {
       map.current.flyTo({ center: [120.9842, 14.5995], zoom: 10 });
     }
   };
-
   return (
     <div>
       <div className="nav">
