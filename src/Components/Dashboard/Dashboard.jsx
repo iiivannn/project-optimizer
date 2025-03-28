@@ -162,7 +162,7 @@ export default function Dashboard() {
               "line-cap": "round",
             },
             paint: {
-              "line-color": "#18d4f5",
+              "line-color": "red",
               "line-width": 6,
               "line-opacity": 0.9,
             },
