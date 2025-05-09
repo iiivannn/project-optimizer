@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -25,6 +26,20 @@ const MANILA_COORDINATES = {
   ],
 };
 
+// Color palette for road segments
+const ROAD_COLORS = [
+  "#FF5733", // Red-Orange
+  "#33A1FF", // Blue
+  "#33FF57", // Green
+  "#9333FF", // Purple
+  "#FF33A1", // Pink
+  "#33FFF1", // Cyan
+  "#FFD433", // Yellow
+  "#7D33FF", // Indigo
+  "#FF5733", // Orange
+  "#33FFB8", // Teal
+];
+
 export default function Dashboard() {
   const { currentUser } = useAuth();
   const [username, setUsername] = useState("");
@@ -33,8 +48,14 @@ export default function Dashboard() {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const markersRef = useRef([]);
+  const labelsRef = useRef([]);
+  const routeLayersRef = useRef([]);
   const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState(null);
+  const [roadLandmarks, setRoadLandmarks] = useState([]);
+  const [roadSegments, setRoadSegments] = useState([]);
+  const [distance, setDistance] = useState(null);
+  const [travelTime, setTravelTime] = useState(null);
 
   useEffect(() => {
     const fetchUsername = async () => {
@@ -119,9 +140,57 @@ export default function Dashboard() {
     }
   };
 
+  // Create a road label at the given coordinates
+  const createRoadLabel = (roadName, coordinates, color, index) => {
+    if (!map.current) return null;
+
+    // Create a popup for the road name
+    const popup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      className: "road-label",
+    })
+      .setLngLat(coordinates)
+      .setHTML(
+        `
+        <div class="road-label-content">
+          <div class="road-label-color-indicator" style="background-color: ${color};"></div>
+          <div class="road-label-text">${roadName}</div>
+        </div>
+      `
+      )
+      .addTo(map.current);
+
+    return popup;
+  };
+
   const handleLogout = async () => {
     await signOutUser();
     navigate("/login");
+  };
+
+  const formatDistance = (meters) => {
+    if (meters < 1000) {
+      return `${meters.toFixed(0)} m`;
+    } else {
+      return `${(meters / 1000).toFixed(2)} km`;
+    }
+  };
+
+  const formatDuration = (seconds) => {
+    if (seconds < 60) {
+      return `${seconds.toFixed(0)} seconds`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = Math.floor(seconds % 60);
+      return `${minutes} min ${
+        remainingSeconds > 0 ? remainingSeconds + " sec" : ""
+      }`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return `${hours} hr ${minutes > 0 ? minutes + " min" : ""}`;
+    }
   };
 
   const updateMap = async () => {
@@ -142,19 +211,8 @@ export default function Dashboard() {
       const toCoords = await getCoordinates(to);
 
       if (fromCoords && toCoords) {
-        // Detailed logging
-        console.log("From Coordinates:", fromCoords);
-        console.log("To Coordinates:", toCoords);
-
-        // Remove existing markers and routes
-        markersRef.current.forEach((marker) => marker.remove());
-        markersRef.current = [];
-
-        // Remove existing route if it exists
-        if (map.current.getSource("route")) {
-          map.current.removeLayer("route");
-          map.current.removeSource("route");
-        }
+        // Clear previous map elements
+        resetMapElements();
 
         // Fit map to bounds of both points
         const bounds = new mapboxgl.LngLatBounds();
@@ -166,108 +224,195 @@ export default function Dashboard() {
         });
 
         // Create markers
-        const fromMarker = new mapboxgl.Marker()
+        const fromMarker = new mapboxgl.Marker({ color: "#4285F4" })
           .setLngLat(fromCoords)
+          .setPopup(
+            new mapboxgl.Popup().setHTML(`<strong>Start:</strong> ${from}`)
+          )
           .addTo(map.current);
 
-        const toMarker = new mapboxgl.Marker({ color: "red" })
+        const toMarker = new mapboxgl.Marker({ color: "#EA4335" })
           .setLngLat(toCoords)
+          .setPopup(new mapboxgl.Popup().setHTML(`<strong>End:</strong> ${to}`))
           .addTo(map.current);
 
         markersRef.current.push(fromMarker, toMarker);
 
-        // Fetch route from Mapbox Directions API
+        // Fetch route from Mapbox Directions API with steps included
         const response = await fetch(
-          `https://api.mapbox.com/directions/v5/mapbox/driving/${fromCoords[0]},${fromCoords[1]};${toCoords[0]},${toCoords[1]}?access_token=${mapboxgl.accessToken}`
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${fromCoords[0]},${fromCoords[1]};${toCoords[0]},${toCoords[1]}?steps=true&geometries=polyline&overview=full&annotations=distance&access_token=${mapboxgl.accessToken}`
         );
         const routeData = await response.json();
 
-        // Detailed logging of route data
-        console.log("Full Route Response:", routeData);
-        console.log("Routes:", routeData.routes);
-
-        // Add route to the map
         if (routeData.routes && routeData.routes.length > 0) {
           const route = routeData.routes[0];
 
-          // More detailed logging
-          console.log("Route Geometry:", route.geometry);
-          const decodedCoordinates = polyline.decode(route.geometry);
-          console.log("Decoded Coordinates:", decodedCoordinates);
+          // Extract and set distance and duration information
+          const distanceInMeters = route.distance;
+          const durationInSeconds = route.duration;
+          setDistance(formatDistance(distanceInMeters));
+          setTravelTime(formatDuration(durationInSeconds));
 
-          // Add route source to the map
-          map.current.addSource("route", {
-            type: "geojson",
-            data: {
-              type: "Feature",
-              properties: {},
-              geometry: {
-                type: "LineString",
-                // Swap the order of each coordinate pair
-                coordinates: decodedCoordinates.map((coord) => [
-                  coord[1],
-                  coord[0],
-                ]),
+          // Process road segments
+          const segments = [];
+          const uniqueRoads = new Set();
+
+          if (route.legs && route.legs.length > 0) {
+            route.legs.forEach((leg) => {
+              if (leg.steps && leg.steps.length > 0) {
+                leg.steps.forEach((step) => {
+                  if (step.name && step.name !== "") {
+                    // Decode each step's geometry
+                    const coords = polyline
+                      .decode(step.geometry)
+                      .map((coord) => [coord[1], coord[0]]);
+
+                    if (coords.length > 0) {
+                      segments.push({
+                        name: step.name,
+                        coordinates: coords,
+                        distance: step.distance,
+                        duration: step.duration,
+                      });
+
+                      uniqueRoads.add(step.name);
+                    }
+                  }
+                });
+              }
+            });
+          }
+
+          setRoadSegments(segments);
+          setRoadLandmarks(Array.from(uniqueRoads));
+
+          // Draw each road segment with unique color
+          segments.forEach((segment, index) => {
+            const colorIndex = index % ROAD_COLORS.length;
+            const color = ROAD_COLORS[colorIndex];
+
+            // Add source and layer for this road segment
+            const sourceId = `route-segment-${index}`;
+            const layerId = `route-layer-${index}`;
+
+            map.current.addSource(sourceId, {
+              type: "geojson",
+              data: {
+                type: "Feature",
+                properties: {
+                  name: segment.name,
+                  distance: segment.distance,
+                  duration: segment.duration,
+                },
+                geometry: {
+                  type: "LineString",
+                  coordinates: segment.coordinates,
+                },
               },
-            },
-          });
+            });
 
-          // Add route layer
-          map.current.addLayer({
-            id: "route",
-            type: "line",
-            source: "route",
-            layout: {
-              "line-join": "round",
-              "line-cap": "round",
-            },
-            paint: {
-              "line-color": "red",
-              "line-width": 6,
-              "line-opacity": 0.9,
-            },
+            map.current.addLayer({
+              id: layerId,
+              type: "line",
+              source: sourceId,
+              layout: {
+                "line-join": "round",
+                "line-cap": "round",
+              },
+              paint: {
+                "line-color": color,
+                "line-width": 6,
+                "line-opacity": 0.8,
+              },
+            });
+
+            routeLayersRef.current.push({ sourceId, layerId });
+
+            // Add label at the midpoint of the segment
+            if (segment.coordinates.length > 1) {
+              const midpointIndex = Math.floor(segment.coordinates.length / 2);
+              const labelPosition = segment.coordinates[midpointIndex];
+              const label = createRoadLabel(
+                segment.name,
+                labelPosition,
+                color,
+                index
+              );
+              if (label) labelsRef.current.push(label);
+            }
+
+            // Make segment interactive
+            map.current.on("mouseenter", layerId, () => {
+              map.current.getCanvas().style.cursor = "pointer";
+              map.current.setPaintProperty(layerId, "line-width", 10);
+            });
+
+            map.current.on("mouseleave", layerId, () => {
+              map.current.getCanvas().style.cursor = "";
+              map.current.setPaintProperty(layerId, "line-width", 6);
+            });
           });
         } else {
           console.error("No routes found");
+          resetStateData();
         }
       }
     } catch (error) {
       console.error("Error fetching route:", error);
+      resetStateData();
     }
+  };
+
+  const resetStateData = () => {
+    setDistance(null);
+    setTravelTime(null);
+    setRoadLandmarks([]);
+    setRoadSegments([]);
+  };
+
+  const resetMapElements = () => {
+    // Remove existing markers
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
+
+    // Remove existing labels
+    labelsRef.current.forEach((label) => label.remove());
+    labelsRef.current = [];
+
+    // Remove existing route layers and sources
+    routeLayersRef.current.forEach(({ layerId, sourceId }) => {
+      if (map.current.getLayer(layerId)) {
+        map.current.removeLayer(layerId);
+      }
+      if (map.current.getSource(sourceId)) {
+        map.current.removeSource(sourceId);
+      }
+    });
+    routeLayersRef.current = [];
   };
 
   const resetMap = () => {
     setFrom("");
     setTo("");
-
-    // Remove markers
-    markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current = [];
-
-    // Remove route if it exists
-    if (map.current.getSource("route")) {
-      map.current.removeLayer("route");
-      map.current.removeSource("route");
-    }
-
-    // Reset the view to show all of Manila
+    resetStateData();
+    resetMapElements();
     fitMapToManila();
   };
 
   return (
-    <div>
+    <div className="dashboard-container">
       <div className="nav">
-        <h1>RouteWise</h1>
+        <h1>PUBTRO</h1>
         <button className="logout-btn" type="button" onClick={handleLogout}>
           Logout
         </button>
       </div>
 
-      <p className="welcome-user">
-        Welcome, {username ? username : currentUser?.email}!
-      </p>
       <div className="content-container">
         <div className="content">
+          <p className="welcome-user">
+            Welcome, {username ? username : currentUser?.email}!
+          </p>
           <div className="go-from">
             <div className="search">
               <label htmlFor="search-from">From:</label>
@@ -308,6 +453,54 @@ export default function Dashboard() {
       </div>
 
       <div ref={mapContainer} className="map-container"></div>
+
+      <div className="features">
+        <div className="landmarks">
+          <h2>Route Roads</h2>
+          {roadLandmarks.length > 0 ? (
+            <div className="landmarks-list">
+              <ul className="road-list">
+                {roadSegments.map((segment, index) => (
+                  <li key={index} className="road-item">
+                    <div
+                      className="road-color-indicator"
+                      style={{
+                        backgroundColor:
+                          ROAD_COLORS[index % ROAD_COLORS.length],
+                      }}
+                    ></div>
+                    <div className="road-details">
+                      <span className="road-name">{segment.name}</span>
+                      <span className="road-distance">
+                        {formatDistance(segment.distance)}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="no-route">No route selected</p>
+          )}
+        </div>
+        <div className="kilometers">
+          <h2>Journey Details</h2>
+          {distance ? (
+            <div className="journey-details">
+              <div className="detail-item">
+                <span className="detail-label">Total Distance:</span>
+                <span className="detail-value">{distance}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Estimated Time:</span>
+                <span className="detail-value">{travelTime}</span>
+              </div>
+            </div>
+          ) : (
+            <p className="no-route">No route selected</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
